@@ -7,8 +7,15 @@ namespace RealisticBleeding
 		public override void ScriptLoaded(ModManager.ModData modData)
 		{
 			base.ScriptLoaded(modData);
-			
+
 			EntryPoint.OnLoaded();
+		}
+
+		public override void ScriptUnload()
+		{
+			base.ScriptUnload();
+
+			EntryPoint.OnUnloaded();
 		}
 
 		public override void ScriptUpdate()

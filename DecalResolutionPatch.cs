@@ -14,7 +14,7 @@ namespace RealisticBleeding
 		{
 			private static ModOptionInt[] GetDecalResolutions()
 			{
-				Span<int> values = stackalloc int[] { 256, 512, 1024, 2048, 4096, 8192 };
+				int[] values = new int[] { 256, 512, 1024, 2048, 4096, 8192 };
 
 				var array = new ModOptionInt[values.Length + 1];
 

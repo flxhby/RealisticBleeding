@@ -15,6 +15,8 @@ namespace RealisticBleeding
         private const string HarmonyID = "com.xyonico.realistic-bleeding";
         
         private static bool _hasLoaded;
+        private static Harmony _harmony;
+        private static SurfaceBloodDecalSystem _surfaceBloodDecalSystem;
 
         [ModOptionCategory("Features", 0)]
         [ModOptionButton]
@@ -43,8 +45,8 @@ namespace RealisticBleeding
 
             Debug.Log("Realistic Bleeding loaded!");
             
-            var harmony = new Harmony(HarmonyID);
-            harmony.PatchAll(typeof(EntryPoint).Assembly);
+            _harmony = new Harmony(HarmonyID);
+            _harmony.PatchAll(typeof(EntryPoint).Assembly);
 
             SurfaceLayerMask = LayerMask.GetMask(nameof(LayerName.Avatar), nameof(LayerName.Ragdoll),
                 nameof(LayerName.NPC),
@@ -77,7 +79,34 @@ namespace RealisticBleeding
                 //new DebugSurfaceBloodSystem(SurfaceBloodDrops, sphereMesh, BloodMaterial.DebugMaterial)
             };
 
-            var surfaceBloodDecalSystem = new SurfaceBloodDecalSystem(SurfaceBloodDrops);
+            _surfaceBloodDecalSystem = new SurfaceBloodDecalSystem(SurfaceBloodDrops);
+
+            // ScriptUnload is not called on a normal game quit, so also clean up then
+            // (otherwise the ComputeBuffers are only reclaimed by the garbage collector).
+            Application.quitting += OnUnloaded;
+        }
+
+        internal static void OnUnloaded()
+        {
+            if (!_hasLoaded) return;
+            _hasLoaded = false;
+
+            Application.quitting -= OnUnloaded;
+
+            _surfaceBloodDecalSystem?.Dispose();
+            _surfaceBloodDecalSystem = null;
+
+            _harmony?.UnpatchAll(HarmonyID);
+            _harmony = null;
+
+            if (Collider != null)
+            {
+                Object.Destroy(Collider.gameObject);
+            }
+
+            Bleeders.Clear();
+            SurfaceBloodDrops.Clear();
+            FallingBloodDrops.Clear();
         }
 
         internal static void OnUpdate()

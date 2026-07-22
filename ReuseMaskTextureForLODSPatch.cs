@@ -43,12 +43,21 @@ namespace RealisticBleeding
 					if (parent == null || parent.childCount == 1) return true;
 
 					var lodRenderers = new List<(Renderer, MaterialInstance)>();
-					
-					// From the original Awake:
-					__instance.revealMaterialController = __instance.gameObject.AddComponent<RevealMaterialController>();
+
+					if (!gameObject.GetComponent<MaterialInstance>())
+					{
+						gameObject.AddComponent<MaterialInstance>();
+					}
+
+					if (!gameObject.TryGetComponent(out __instance.revealMaterialController))
+					{
+						__instance.revealMaterialController = gameObject.AddComponent<RevealMaterialController>();
+					}
+
 					__instance.revealMaterialController.width = (int) __instance.maskWidth;
 					__instance.revealMaterialController.height = (int) __instance.maskHeight;
 					__instance.revealMaterialController.maskPropertyName = "_RevealMask";
+					__instance.revealMaterialController.maskPropertyHash = RevealMaskNameID;
 					__instance.revealMaterialController.restoreMaterialsOnReset = false;
 					__instance.revealMaterialController.renderTextureFormat = RenderTextureFormat.ARGB64;
 
@@ -123,6 +132,42 @@ namespace RealisticBleeding
 					{
 						RevealMaskProjection.materialsToEnableReveal.Push(material);
 						material.SetTexture(RevealMaskNameID, __instance.MaskTexture);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Since 1.2, RevealMaterialController.Reset (called when creatures despawn, including into the pool)
+		/// destroys the mask texture and disables reveal — but only on the controller's own materials.
+		/// The LOD sibling materials we bound the shared mask to would keep sampling the destroyed texture,
+		/// which makes body parts of pooled/respawned creatures render invisible or as glowing garbage.
+		/// This cleans up the sibling materials the same way DisableReveal cleans up the controller's own.
+		/// </summary>
+		[HarmonyPatch(typeof(RevealMaterialController), "Reset")]
+		public static class ResetMaskTextureOnLODSPatch
+		{
+			private static void Postfix(RevealMaterialController __instance)
+			{
+				if (!__instance.TryGetComponent(out RevealDecalLODS revealDecalLODS)) return;
+
+				foreach (var (renderer, materialInstance) in revealDecalLODS.LODRenderers)
+				{
+					if (renderer == null) continue;
+
+					if (materialInstance == null || materialInstance.materials == null) continue;
+
+					foreach (var material in materialInstance.materials)
+					{
+						if (material == null) continue;
+
+						if (material.IsKeywordEnabled("_REVEALLAYERS"))
+						{
+							material.DisableKeyword("_REVEALLAYERS");
+							material.SetFloat(RevealMaskProjection.UseReveal, 0f);
+						}
+
+						material.SetTexture(RevealMaskNameID, null);
 					}
 				}
 			}

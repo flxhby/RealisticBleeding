@@ -82,11 +82,9 @@ namespace RealisticBleeding
             surfaceBloodDrop.SurfaceCollider = new SurfaceCollider(collider, Vector3.zero);
             surfaceBloodDrop.Position = collider.transform.InverseTransformPoint(surfaceBloodDrop.Position);
 
-            var rb = collider.attachedRigidbody;
-            if (!rb) return;
+            var ragdollPart = surfaceBloodDrop.SurfaceCollider.RagdollPart;
 
-            RagdollPart ragdollPart;
-            if ((ragdollPart = rb.GetComponent<RagdollPart>()) != null)
+            if (ragdollPart != null && ragdollPart.ragdoll != null)
             {
                 surfaceBloodDrop.DisposeWithCreature = ragdollPart.ragdoll.creature;
             }

@@ -37,12 +37,16 @@ namespace RealisticBleeding.Systems
         {
             try
             {
-                creature.OnDespawnEvent += time =>
+                void OnDespawn(EventTime time)
                 {
                     if (time == EventTime.OnStart) return;
 
+                    creature.OnDespawnEvent -= OnDespawn;
+
                     OnCreatureDespawnEvent(creature);
-                };
+                }
+
+                creature.OnDespawnEvent += OnDespawn;
             }
             catch (Exception e)
             {
@@ -54,6 +58,8 @@ namespace RealisticBleeding.Systems
         {
             try
             {
+                _trackedCreatures.Remove(creature);
+
                 for (var index = 0; index < _surfaceBloodDrops.Count; index++)
                 {
                     if (_surfaceBloodDrops[index].DisposeWithCreature == creature)

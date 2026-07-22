@@ -21,9 +21,12 @@ namespace RealisticBleeding
             {
                 if (creature == null) return;
 
-                if (!BleedingCreatures.Add(creature)) return;
-
                 var jawBone = creature.jaw;
+                if (jawBone == null) return;
+                if (creature.ragdoll == null || creature.ragdoll.headPart == null ||
+                    creature.ragdoll.headPart.colliderGroup == null) return;
+
+                if (!BleedingCreatures.Add(creature)) return;
 
                 var position = jawBone.TransformPoint(LowerLipOffset);
                 var rotation = jawBone.rotation * RotationOffset;
@@ -32,10 +35,13 @@ namespace RealisticBleeding
                 var closestDistance = float.PositiveInfinity;
 
                 var colliders = creature.ragdoll.headPart.colliderGroup.colliders;
+                if (colliders == null) return;
 
                 for (var i = 0; i < colliders.Count; i++)
                 {
                     var collider = colliders[i];
+
+                    if (collider == null) continue;
 
                     var distance = Vector3.Distance(collider.ClosestPoint(position), position);
 

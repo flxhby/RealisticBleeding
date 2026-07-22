@@ -230,6 +230,11 @@ namespace RealisticBleeding.Systems
             Vector3 point,
             Collider collider)
         {
+            if (!ReferenceEquals(surfaceCollider.Collider, collider))
+            {
+                surfaceCollider.RagdollPart = SurfaceCollider.ResolveRagdollPart(collider);
+            }
+
             surfaceCollider.Collider = collider;
             surfaceBloodDrop.Position = collider.transform.InverseTransformPoint(point);
         }
@@ -241,7 +246,7 @@ namespace RealisticBleeding.Systems
 
         private static ModOptionInt[] GetMaxActiveBloodDropValues()
         {
-            Span<int> values = stackalloc int[] { 5, 10, 20, 30, 40, 50, 75, 100, 1000 };
+            int[] values = new int[] { 5, 10, 20, 30, 40, 50, 75, 100, 1000 };
 
             var array = new ModOptionInt[values.Length];
 

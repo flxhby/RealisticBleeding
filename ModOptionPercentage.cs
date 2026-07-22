@@ -9,7 +9,7 @@ namespace RealisticBleeding
 
 		public static ModOptionFloat[] GetDefaults()
 		{
-			Span<int> values = stackalloc int[] { 0, 10, 25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000 };
+			int[] values = new int[] { 0, 10, 25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000 };
 
 			var options = new ModOptionFloat[values.Length];
 

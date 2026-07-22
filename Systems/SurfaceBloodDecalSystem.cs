@@ -116,11 +116,8 @@ namespace RealisticBleeding.Systems
                         continue;
                     }
 
-                    var rb = col.attachedRigidbody;
-                    if (!rb) continue;
-
-                    RagdollPart ragdollPart;
-                    if ((ragdollPart = rb.GetComponent<RagdollPart>()) == null) continue;
+                    var ragdollPart = surfaceCollider.RagdollPart;
+                    if (ragdollPart == null) continue;
 
                     var worldPos = surfaceCollider.Collider.transform.TransformPoint(bloodDrop.Position);
                     var normal = surfaceCollider.LastNormal;
@@ -389,8 +386,6 @@ namespace RealisticBleeding.Systems
 
                 if (_bloodDropsInCells != null)
                 {
-                    var bloodDropsSpan = MemoryMarshal.Cast<Matrix4x4, BloodDropGPU>(BloodDropsArray);
-
                     var prevCellCoord = Vector3Int.zero;
 
                     for (var i = 0; i < _bloodDropsInCells.Count; i++)
@@ -414,7 +409,7 @@ namespace RealisticBleeding.Systems
 
                         if (currentDropCount >= MaxBloodDropsPerCell) continue;
 
-                        bloodDropsSpan[dropsIndex + currentDropCount++] = bloodDropInCell.BloodDrop;
+                        WriteBloodDrop(dropsIndex + currentDropCount++, bloodDropInCell.BloodDrop);
                     }
 
                     if (currentDropCount > 0)
@@ -433,6 +428,22 @@ namespace RealisticBleeding.Systems
                 }
 
                 commandBuffer.SetBufferData(cellsBuffer, CellArray, 0, 0, totalCells);
+            }
+
+            private static void WriteBloodDrop(int index, in BloodDropGPU drop)
+            {
+                var matrixIndex = index / 2;
+                var o = (index % 2) * 8;
+                var m = BloodDropsArray[matrixIndex];
+                m[o + 0] = drop.StartPos.x;
+                m[o + 1] = drop.StartPos.y;
+                m[o + 2] = drop.StartPos.z;
+                m[o + 3] = drop.InverseSquareRadius;
+                m[o + 4] = drop.EndPos.x;
+                m[o + 5] = drop.EndPos.y;
+                m[o + 6] = drop.EndPos.z;
+                m[o + 7] = 0f;
+                BloodDropsArray[matrixIndex] = m;
             }
 
             private static int GetFlattenedIndex(Vector3Int coord, Vector3Int dimensions)

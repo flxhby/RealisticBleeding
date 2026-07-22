@@ -93,7 +93,9 @@ namespace RealisticBleeding
                     var ragdollPart = collisionInstance.damageStruct.hitRagdollPart;
                     if (ragdollPart == null) return;
 
+                    if (ragdollPart.ragdoll == null) return;
                     var creature = ragdollPart.ragdoll.creature;
+                    if (creature == null) return;
 
                     if (!PlayerBleeding && creature.isPlayer) return;
 
@@ -208,11 +210,15 @@ namespace RealisticBleeding
                     Collider closestCollider = null;
                     var closestDistance = float.PositiveInfinity;
 
+                    if (ragdollPart.colliderGroup == null) return;
                     var colliders = ragdollPart.colliderGroup.colliders;
+                    if (colliders == null) return;
 
                     for (var i = 0; i < colliders.Count; i++)
                     {
                         var collider = colliders[i];
+
+                        if (collider == null) continue;
 
                         var distance = Vector3.Distance(collider.ClosestPoint(position), position);
 

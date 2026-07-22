@@ -24,18 +24,24 @@ namespace RealisticBleeding
 
                 if (centerEyes == null) return;
 
+                if (creature.ragdoll == null || creature.ragdoll.headPart == null ||
+                    creature.ragdoll.headPart.colliderGroup == null) return;
+
                 if (!BleedingCreatures.Add(creature)) return;
 
                 Collider closestCollider = null;
                 var closestDistance = float.PositiveInfinity;
 
                 var colliders = creature.ragdoll.headPart.colliderGroup.colliders;
+                if (colliders == null) return;
 
                 var position = centerEyes.TransformPoint(UnderNoseOffset);
 
                 for (var i = 0; i < colliders.Count; i++)
                 {
                     var collider = colliders[i];
+
+                    if (collider == null) continue;
 
                     var distance = Vector3.Distance(collider.ClosestPoint(position), position);
 
