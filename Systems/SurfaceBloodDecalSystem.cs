@@ -43,6 +43,14 @@ namespace RealisticBleeding.Systems
 
         private bool _enableReveal;
 
+        [ModOptionCategory("Features", 0)]
+        [ModOption("Blood On Hair",
+            "Controls how much blood appears on hair, beards, eyebrows and eyelashes.\n" +
+            "Hair gets bloody much faster than skin because all hair strands share the same texture area, so values below 100% are recommended.",
+            valueSourceType = typeof(ModOptionPercentage), valueSourceName = nameof(ModOptionPercentage.GetZeroToFullDefaults),
+            defaultValueIndex = 0, order = 5)]
+        private static float BloodOnHairMultiplier = 0f;
+
         /*
         [ModOptionCategory("Performance", 1)]
         [ModOptionButton]
@@ -132,10 +140,19 @@ namespace RealisticBleeding.Systems
 
                     var bloodDropGPU = new BloodDropGPU(startPos, endPos, radius);
 
+                    // Hair accumulates blood much faster than skin because its strands share overlapping mask UVs,
+                    // so hair drops are stamped less often and with a thinner radius, scaled by the mod option.
+                    var hairAmount = Mathf.Clamp01(BloodOnHairMultiplier);
+                    var renderOnHair = hairAmount > 0 && (hairAmount >= 1 || UnityEngine.Random.value <= hairAmount);
+                    var hairBloodDropGPU = new BloodDropGPU(startPos, endPos, radius * Mathf.Sqrt(hairAmount));
+
                     foreach (var rendererData in ragdollPart.renderers)
                     {
                         if (!rendererData.revealDecal) continue;
                         if (rendererData.renderer == null) continue;
+
+                        var isHair = IsHairRenderer(rendererData.renderer);
+                        if (isHair && !renderOnHair) continue;
 
                         var revealMaterialController = rendererData.revealDecal.revealMaterialController;
 
@@ -185,7 +202,14 @@ namespace RealisticBleeding.Systems
                                 bloodDrops = _bloodDrops[revealMaterialController];
                             }
 
-                            bloodDrops.Add(in bloodDropGPU, worldPos);
+                            if (isHair)
+                            {
+                                bloodDrops.Add(in hairBloodDropGPU, worldPos);
+                            }
+                            else
+                            {
+                                bloodDrops.Add(in bloodDropGPU, worldPos);
+                            }
                         }
                     }
                 }
@@ -244,6 +268,63 @@ namespace RealisticBleeding.Systems
             {
                 Debug.LogException(e);
             }
+        }
+
+        private static readonly Dictionary<int, bool> HairRendererCache = new Dictionary<int, bool>();
+
+        private static readonly string[] HairKeywords =
+            { "hair", "beard", "eyebrow", "eyelash", "moustache", "mustache", "sideburn" };
+
+        private static bool IsHairRenderer(Renderer renderer)
+        {
+            var instanceID = renderer.GetInstanceID();
+
+            if (HairRendererCache.TryGetValue(instanceID, out var isHair)) return isHair;
+
+            isHair = ContainsHairKeyword(renderer.name);
+
+            if (!isHair)
+            {
+                var parent = renderer.transform.parent;
+
+                for (var depth = 0; depth < 3 && parent != null; depth++, parent = parent.parent)
+                {
+                    if (ContainsHairKeyword(parent.name))
+                    {
+                        isHair = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isHair)
+            {
+                foreach (var material in renderer.sharedMaterials)
+                {
+                    if (material == null) continue;
+
+                    if (ContainsHairKeyword(material.name) ||
+                        (material.shader != null && ContainsHairKeyword(material.shader.name)))
+                    {
+                        isHair = true;
+                        break;
+                    }
+                }
+            }
+
+            HairRendererCache[instanceID] = isHair;
+
+            return isHair;
+        }
+
+        private static bool ContainsHairKeyword(string name)
+        {
+            foreach (var keyword in HairKeywords)
+            {
+                if (name.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            }
+
+            return false;
         }
 
         [StructLayout(LayoutKind.Sequential)]
